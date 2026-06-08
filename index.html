@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Wonder Weeks</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#3d5a47">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Wonder Weeks">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="description" content="Track your baby's Wonder Weeks developmental leaps, fussy periods, and sunny windows.">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#fdf6ec;--warm:#f5e6d0;--terracotta:#c4713a;--terracotta-light:#e8956a;
+  --forest:#3d5a47;--forest-light:#5c7a66;--sky:#7baab8;
+  --fussy:#d4735a;--fussy-light:#f0a890;--sunny:#e8c84a;--sunny-light:#f5dfa0;
+  --ink:#2a2420;--muted:#8a7a6e;--card-shadow:0 4px 24px rgba(42,36,32,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);min-height:100vh}
+
+/* ── HEADER ── */
+header{background:var(--forest);padding:20px 20px 16px;position:relative;overflow:hidden}
+header::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 30% 50%,rgba(255,255,255,.05) 0%,transparent 70%)}
+.header-top{display:flex;align-items:center;justify-content:space-between;position:relative}
+.header-title{font-family:'Playfair Display',serif;font-size:1.6rem;color:var(--cream);letter-spacing:-.5px}
+.header-sub{color:rgba(253,246,236,.6);font-size:.75rem;margin-top:2px;font-weight:300}
+.baby-tabs-wrap{display:flex;gap:8px;margin-top:14px;position:relative;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+.baby-tabs-wrap::-webkit-scrollbar{display:none}
+.baby-tab{display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;border:1.5px solid rgba(255,255,255,.25);background:transparent;color:rgba(255,255,255,.7);font-family:'DM Sans',sans-serif;font-size:.8rem;cursor:pointer;white-space:nowrap;transition:all .2s;flex-shrink:0}
+.baby-tab.active{background:white;color:var(--forest);border-color:white;font-weight:500}
+.baby-tab .tab-dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0}
+.baby-tab.active .tab-dot{background:var(--terracotta)}
+.add-baby-btn{padding:6px 12px;border-radius:20px;border:1.5px dashed rgba(255,255,255,.35);background:transparent;color:rgba(255,255,255,.55);font-family:'DM Sans',sans-serif;font-size:.8rem;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .2s}
+.add-baby-btn:hover{border-color:rgba(255,255,255,.7);color:rgba(255,255,255,.8)}
+.header-actions{display:flex;gap:8px;position:relative}
+.hdr-btn{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:rgba(255,255,255,.85);padding:6px 10px;font-family:'DM Sans',sans-serif;font-size:.75rem;cursor:pointer;white-space:nowrap;transition:background .2s}
+.hdr-btn:hover{background:rgba(255,255,255,.22)}
+
+/* ── LEGEND ── */
+.legend{display:flex;gap:12px;padding:9px 16px;background:var(--warm);border-bottom:1px solid rgba(0,0,0,.06);flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:.72rem;color:var(--muted);font-weight:500}
+.legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+
+/* ── NOTIFICATION BANNER ── */
+.notif-banner{margin:12px 16px 0;border-radius:10px;padding:10px 14px;font-size:.8rem;display:none;align-items:center;gap:10px}
+.notif-banner.visible{display:flex}
+.notif-banner.ask{background:#eef5f0;border:1px solid rgba(61,90,71,.2);color:var(--forest)}
+.notif-banner.granted{background:#eef5f0;border:1px solid rgba(61,90,71,.2);color:var(--forest)}
+.notif-banner.denied{background:#fdf0ed;border:1px solid rgba(212,115,90,.2);color:#7a3020}
+.nb-text{flex:1;line-height:1.4}
+.nb-btn{background:var(--forest);color:white;border:none;border-radius:6px;padding:5px 10px;font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:500;cursor:pointer;white-space:nowrap}
+.nb-dismiss{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:2px 4px;line-height:1}
+
+/* ── MILESTONE COUNTDOWN WIDGET ── */
+.milestone-widget{margin:14px 16px 0;border-radius:14px;overflow:hidden;display:none}
+.milestone-widget.visible{display:block}
+.milestone-inner{padding:16px 18px;display:flex;align-items:center;gap:14px}
+.milestone-icon{font-size:1.8rem;flex-shrink:0;line-height:1}
+.milestone-text{flex:1;min-width:0}
+.milestone-label{font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;font-weight:600;opacity:.7;margin-bottom:3px}
+.milestone-name{font-family:'Playfair Display',serif;font-size:1.15rem;line-height:1.2;margin-bottom:2px}
+.milestone-sub{font-size:.75rem;opacity:.75}
+.milestone-count{text-align:right;flex-shrink:0}
+.milestone-days{font-family:'Playfair Display',serif;font-size:2rem;line-height:1;font-weight:700}
+.milestone-days-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;opacity:.65;margin-top:2px}
+.milestone-widget.type-fussy .milestone-inner{background:linear-gradient(135deg,#f5ece9,#f0ddd8);color:#5a2a1a}
+.milestone-widget.type-leap  .milestone-inner{background:linear-gradient(135deg,#f5ece5,#eeddd0);color:#5a2a10}
+.milestone-widget.type-sunny .milestone-inner{background:linear-gradient(135deg,#f7f2dc,#f2e8b0);color:#4a3800}
+.milestone-widget.type-now   .milestone-inner{background:linear-gradient(135deg,#eef5f0,#dceee4);color:#1e3d28}
+
+/* ── STATUS CARD ── */
+.status-card{margin:12px 16px 0;border-radius:14px;padding:16px 18px;background:white;box-shadow:var(--card-shadow);border-left:4px solid var(--terracotta);display:none}
+.status-card.visible{display:block}
+.status-label{font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;font-weight:500;color:var(--muted);margin-bottom:5px}
+.status-title{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--ink);margin-bottom:5px}
+.status-desc{font-size:.82rem;color:var(--muted);line-height:1.55}
+.status-weeks{margin-top:8px;font-size:.76rem;color:var(--terracotta);font-weight:500}
+
+/* ── TIMELINE ── */
+.timeline-container{padding:0 16px 14px}
+.section-title{font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--ink);margin-bottom:10px;padding-top:14px;display:flex;align-items:center;justify-content:space-between}
+.section-title .ical-btn{font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:500;color:var(--forest);background:#eef5f0;border:1px solid rgba(61,90,71,.2);border-radius:6px;padding:4px 9px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.section-title .ical-btn:hover{background:#dceee4}
+.timeline-scroll{overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch}
+.timeline-scroll::-webkit-scrollbar{height:3px}
+.timeline-scroll::-webkit-scrollbar-track{background:var(--warm);border-radius:2px}
+.timeline-scroll::-webkit-scrollbar-thumb{background:var(--terracotta-light);border-radius:2px}
+.timeline-track{display:flex;height:52px;min-width:900px;border-radius:10px;overflow:hidden;position:relative;margin-bottom:4px}
+.timeline-segment{height:100%;position:relative;cursor:pointer;transition:filter .15s;display:flex;align-items:center;justify-content:center}
+.timeline-segment:hover{filter:brightness(1.1)}
+.timeline-segment.fussy{background:var(--fussy)}
+.timeline-segment.leap{background:var(--terracotta)}
+.timeline-segment.sunny{background:var(--sunny)}
+.timeline-segment.pre{background:#ddd;cursor:default}
+.current-marker{position:absolute;top:-4px;width:2px;height:calc(100% + 4px);background:var(--ink);z-index:10;pointer-events:none}
+.current-marker::before{content:'▼';position:absolute;top:-10px;left:50%;transform:translateX(-50%);font-size:8px;color:var(--ink)}
+.current-marker::after{content:'Today';position:absolute;top:-22px;left:50%;transform:translateX(-50%);font-size:.52rem;font-weight:700;color:var(--ink);white-space:nowrap;background:var(--cream);padding:1px 3px;border-radius:3px}
+.seg-label{font-size:.52rem;font-weight:600;color:white;text-align:center;line-height:1.2;padding:2px;text-shadow:0 1px 2px rgba(0,0,0,.3);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;pointer-events:none}
+.timeline-segment.sunny .seg-label{color:#5a4a00;text-shadow:none}
+.timeline-segment.pre .seg-label{color:#888;text-shadow:none}
+.week-markers{display:flex;min-width:900px;padding:0 0 2px}
+.week-marker{font-size:.58rem;color:var(--muted);text-align:left;flex-shrink:0}
+
+/* ── NEXT UP ── */
+.next-section{margin:0 16px 14px}
+.next-title{font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;font-weight:600;color:var(--muted);margin-bottom:8px;padding-top:4px}
+.next-row{background:white;border-radius:10px;padding:11px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 12px rgba(0,0,0,.06);margin-bottom:7px;cursor:pointer}
+.next-icon{width:34px;height:34px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem}
+.next-info{flex:1;min-width:0}
+.next-info strong{font-size:.83rem;display:block;color:var(--ink)}
+.next-info span{font-size:.72rem;color:var(--muted)}
+.next-countdown{font-size:.76rem;font-weight:600;color:var(--terracotta);white-space:nowrap;text-align:right}
+.next-countdown small{display:block;font-size:.66rem;color:var(--muted);font-weight:400}
+
+/* ── LEAP CARDS ── */
+.leaps-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:4px}
+@media(min-width:500px){.leaps-grid{grid-template-columns:1fr 1fr 1fr}}
+.leap-card{background:white;border-radius:12px;padding:13px;box-shadow:var(--card-shadow);cursor:pointer;transition:transform .15s,box-shadow .15s;border-top:3px solid var(--terracotta);position:relative}
+.leap-card:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(42,36,32,.14)}
+.leap-card.active{border-top-color:var(--forest);background:#f4f9f6}
+.leap-card.past{opacity:.5}
+.leap-card.upcoming-soon{border-top-color:var(--fussy)}
+.leap-num{font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;color:var(--terracotta);line-height:1;margin-bottom:3px}
+.leap-card.active .leap-num{color:var(--forest)}
+.leap-name{font-size:.75rem;font-weight:600;color:var(--ink);margin-bottom:3px;line-height:1.3}
+.leap-week{font-size:.68rem;color:var(--muted)}
+.leap-badge{position:absolute;top:9px;right:9px;font-size:.58rem;padding:2px 6px;border-radius:4px;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.badge-active{background:var(--forest);color:white}
+.badge-soon{background:var(--fussy);color:white}
+.badge-past{background:#e0e0e0;color:#888}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(42,36,32,.5);z-index:100;display:none;align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--cream);border-radius:20px 20px 0 0;padding:22px 20px 36px;width:100%;max-height:88vh;overflow-y:auto;animation:slideUp .3s ease;will-change:transform;touch-action:pan-y;-webkit-user-select:none;user-select:none}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{width:44px;height:5px;background:rgba(0,0,0,.18);border-radius:3px;margin:0 auto 20px;cursor:grab}
+.modal h2{font-family:'Playfair Display',serif;font-size:1.45rem;color:var(--ink);margin-bottom:4px}
+.modal-sub{font-size:.78rem;color:var(--muted);margin-bottom:14px}
+.modal-section-title{font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;font-weight:600;color:var(--terracotta);margin:12px 0 5px}
+.modal p,.modal li{font-size:.84rem;color:#4a3e36;line-height:1.65}
+.modal ul{padding-left:16px}
+.modal ul li{margin-bottom:3px}
+.close-btn{margin-top:18px;width:100%;padding:12px;background:var(--terracotta);color:white;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:500;cursor:pointer}
+.timeline-range{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap}
+.range-pill{padding:4px 11px;border-radius:20px;font-size:.73rem;font-weight:500}
+.pill-fussy{background:var(--fussy-light);color:#7a2e1a}
+.pill-leap{background:#f5ddd0;color:var(--terracotta)}
+.pill-sunny{background:var(--sunny-light);color:#6a5000}
+.date-pills{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}
+.date-pill{padding:5px 11px;border-radius:20px;font-size:.73rem;font-weight:500;background:rgba(61,90,71,.1);color:var(--forest);border:1px solid rgba(61,90,71,.2)}
+.dp-label{font-size:.62rem;opacity:.7;display:block}
+.dp-date{font-weight:600}
+.sunny-modal-header{font-family:'Playfair Display',serif;font-size:1.35rem;color:var(--ink);margin-bottom:4px}
+.sunny-modal-sub{font-size:.78rem;color:var(--muted);margin-bottom:14px}
+.modal-action-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.modal-action-btn{flex:1;padding:9px 12px;border-radius:8px;border:1.5px solid var(--forest);background:transparent;color:var(--forest);font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:500;cursor:pointer;text-align:center;display:flex;align-items:center;justify-content:center;gap:5px;min-width:120px}
+.modal-action-btn:hover{background:#eef5f0}
+@keyframes handlePulse{0%,100%{opacity:.18}50%{opacity:.4}}
+.modal-handle.hint{animation:handlePulse 1.2s ease 2}
+
+/* ── BABY EDITOR MODAL ── */
+.baby-editor{padding:4px 0}
+.baby-editor-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid rgba(0,0,0,.07)}
+.baby-editor-row:last-of-type{border-bottom:none}
+.baby-color{width:28px;height:28px;border-radius:50%;flex-shrink:0;border:2px solid rgba(0,0,0,.1)}
+.baby-editor-fields{flex:1;display:flex;flex-direction:column;gap:6px}
+.baby-editor-input{border:1.5px solid var(--warm);border-radius:8px;padding:7px 10px;font-family:'DM Sans',sans-serif;font-size:.85rem;background:white;color:var(--ink);outline:none;width:100%;transition:border-color .2s}
+.baby-editor-input:focus{border-color:var(--terracotta)}
+.baby-del-btn{background:none;border:none;color:#c4715a;font-size:1.1rem;cursor:pointer;padding:4px;flex-shrink:0}
+.baby-add-row{padding:12px 0 4px;text-align:center}
+.baby-add-new{background:none;border:1.5px dashed var(--muted);border-radius:8px;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:.82rem;padding:9px;width:100%;cursor:pointer;transition:all .2s}
+.baby-add-new:hover{border-color:var(--forest);color:var(--forest)}
+.save-babies-btn{width:100%;padding:12px;background:var(--forest);color:white;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.88rem;font-weight:500;cursor:pointer;margin-top:14px}
+
+/* ── SHARE CARD MODAL ── */
+.share-preview{border-radius:14px;overflow:hidden;margin-bottom:16px;box-shadow:var(--card-shadow)}
+#shareCanvas{display:block;width:100%;height:auto;border-radius:14px}
+.share-actions{display:flex;gap:8px}
+.share-dl-btn{flex:1;padding:11px;background:var(--forest);color:white;border:none;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+.share-copy-btn{padding:11px 16px;background:white;border:1.5px solid var(--forest);color:var(--forest);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:500;cursor:pointer}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div>
+      <div class="header-title">✦ Wonder Weeks</div>
+      <div class="header-sub" id="headerSub">Track your baby's mental leaps</div>
+    </div>
+    <div class="header-actions">
+      <button class="hdr-btn" onclick="openShareModal()">Share ↗</button>
+      <button class="hdr-btn" onclick="openBabyEditor()">Edit ✎</button>
+    </div>
+  </div>
+  <div class="baby-tabs-wrap" id="babyTabs"></div>
+</header>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--fussy)"></div>Fussy</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--terracotta)"></div>Leap</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--sunny)"></div>Sunny</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#ddd"></div>Newborn</div>
+</div>
+
+<div class="notif-banner ask" id="notifBanner">
+  <span class="nb-text" id="notifBannerText">🔔 Get notified when each leap starts</span>
+  <button class="nb-btn" id="notifBannerBtn" onclick="requestNotifPermission()">Enable</button>
+  <button class="nb-dismiss" onclick="dismissNotifBanner()">✕</button>
+</div>
+
+<div class="milestone-widget" id="milestoneWidget">
+  <div class="milestone-inner">
+    <div class="milestone-icon" id="milestoneIcon">✦</div>
+    <div class="milestone-text">
+      <div class="milestone-label" id="milestoneLabel">Next milestone</div>
+      <div class="milestone-name" id="milestoneName">—</div>
+      <div class="milestone-sub" id="milestoneSub">—</div>
+    </div>
+    <div class="milestone-count">
+      <div class="milestone-days" id="milestoneDays">—</div>
+      <div class="milestone-days-label" id="milestoneDaysLabel">days</div>
+    </div>
+  </div>
+</div>
+
+<div class="status-card" id="statusCard">
+  <div class="status-label" id="statusLabel">Current period</div>
+  <div class="status-title" id="statusTitle">—</div>
+  <div class="status-desc" id="statusDesc">—</div>
+  <div class="status-weeks" id="statusWeeks"></div>
+</div>
+
+<div class="timeline-container" id="timelineContainer" style="display:none">
+  <div class="section-title">
+    Full timeline
+    <a class="ical-btn" id="icalBtn" onclick="downloadICal()" href="#">📅 Download iCal</a>
+  </div>
+  <div class="timeline-scroll">
+    <div class="timeline-track" id="timelineTrack"></div>
+    <div class="week-markers" id="weekMarkers"></div>
+  </div>
+</div>
+
+<div class="next-section" id="nextSection" style="display:none">
+  <div class="next-title">Coming up next</div>
+  <div id="nextList"></div>
+</div>
+
+<div class="timeline-container" id="leapsContainer" style="display:none">
+  <div class="section-title">All 10 leaps</div>
+  <div class="leaps-grid" id="leapsGrid"></div>
+</div>
+
+<!-- Universal modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modal">
+    <div class="modal-handle" id="modalHandle"></div>
+    <div id="modalContent"></div>
+    <button class="close-btn" onclick="closeModal()">Close</button>
+  </div>
+</div>
+
+<!-- Share canvas (hidden, rendered offscreen) -->
+<canvas id="shareCanvas" style="display:none" width="800" height="520"></canvas>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// LEAP DATA
+// ═══════════════════════════════════════════════════════════
+const LEAPS = [
+  { num:1,  name:"The World of Changing Sensations",  fussyStart:4,  leapStart:5,  leapEnd:6,  sunnyStart:6,  sunnyEnd:8,
+    abilities:["Notices faces more intently","Follows objects with their eyes","Reacts more to sounds","Briefly lifts head during tummy time"],
+    signs:["Cries more than usual","Wants to be held constantly","Feeds more frequently","Disrupted sleep"],
+    tips:["Extra skin-to-skin contact","Gentle rocking and shushing","Offer breast or bottle more often","Try baby wearing"],
+    summary:"Their senses sharpen dramatically. They begin to notice contrasts, shadows, and new sensations that can feel overwhelming — leading to fussiness as their brain processes it all." },
+  { num:2,  name:"The World of Patterns",             fussyStart:7,  leapStart:8,  leapEnd:9,  sunnyStart:9,  sunnyEnd:11,
+    abilities:["Recognises your voice distinctly","Social smiling begins","Tracks moving objects smoothly","Body awareness develops"],
+    signs:["Clingier than usual","Sleep regression possible","Increased evening fussiness","Wants constant attention"],
+    tips:["Lots of face-to-face interaction","Mirror play","High-contrast toys","Talk and sing constantly"],
+    summary:"Your baby starts to see patterns in the world — faces, sounds, and routines. The first social smiles often appear in the sunny period after this leap." },
+  { num:3,  name:"The World of Smooth Transitions",   fussyStart:11, leapStart:12, leapEnd:12, sunnyStart:12, sunnyEnd:14,
+    abilities:["Smoother, more fluid movements","Better head control","Watches their own hands","Reaches towards objects"],
+    signs:["Fussier, wants feeding more","Trouble settling to sleep","Needs more reassurance"],
+    tips:["Tummy time daily","Let them reach for things","Gentle play gym time","Respond to coos and vocalisations"],
+    summary:"Movements become less jerky and more fluid. Your baby starts to understand transitions between states — awake, asleep, hungry, full — as smooth rather than sudden." },
+  { num:4,  name:"The World of Events",               fussyStart:14, leapStart:17, leapEnd:17, sunnyStart:17, sunnyEnd:21,
+    abilities:["Cause and effect understanding","Grabs objects intentionally","Laughs out loud","Rolls from tummy to back"],
+    signs:["Frequent night waking","Very clingy","Increased drooling","Distracted during feeds"],
+    tips:["Rattles and cause-and-effect toys","Lots of floor play","Start a consistent sleep routine","Expect the 4-month sleep regression around this time"],
+    summary:"Perhaps the toughest leap. Your baby realises their actions cause things to happen — but also that you can disappear. The notorious 4-month sleep regression often strikes here." },
+  { num:5,  name:"The World of Relationships",        fussyStart:22, leapStart:26, leapEnd:26, sunnyStart:26, sunnyEnd:33,
+    abilities:["Stranger anxiety begins","Sits with support","Transfers objects hand-to-hand","Babbling starts","Understands some simple words"],
+    signs:["Separation anxiety kicks in","Won't go easily to others","Very clingy with primary carer","Disrupted sleep again"],
+    tips:["Don't force others to hold your baby","Peek-a-boo is perfect now","Label everything you do aloud","Introduce soft solids if developmentally ready"],
+    summary:"Your baby grasps the concept of relationships — that things and people have a special connection to each other. Stranger anxiety is completely normal and healthy at this stage." },
+  { num:6,  name:"The World of Categories",           fussyStart:33, leapStart:37, leapEnd:37, sunnyStart:37, sunnyEnd:42,
+    abilities:["Sorts objects by type","Points to familiar objects","Understands 'no'","Pulls to stand","Waves bye-bye"],
+    signs:["Early tantrums may begin","Demands more attention","Tests limits deliberately"],
+    tips:["Simple sorting games","Read board books together","Name body parts regularly","Baby-proof more thoroughly now"],
+    summary:"Your baby's brain learns to sort the world into categories. They understand that dogs are dogs and cups are cups — a fundamental conceptual breakthrough that shapes all future learning." },
+  { num:7,  name:"The World of Sequences",            fussyStart:41, leapStart:46, leapEnd:46, sunnyStart:46, sunnyEnd:51,
+    abilities:["Stacks blocks intentionally","Puts objects inside containers","Understands simple instructions","Cruising along furniture","First words may appear"],
+    signs:["Clingy again","Sleep disrupted","More emotional meltdowns"],
+    tips:["Stacking cups and rings toys","Simple two-step instructions","Encourage walking along furniture","Praise all attempts at new skills"],
+    summary:"Your baby understands that actions must happen in the right order. Pouring, stacking, and 'in and out' games become endlessly fascinating as they explore sequences." },
+  { num:8,  name:"The World of Programs",             fussyStart:51, leapStart:55, leapEnd:55, sunnyStart:55, sunnyEnd:60,
+    abilities:["Follows multi-step routines","Imitates daily tasks","May walk independently","Vocabulary growing steadily","Simple pretend play emerges"],
+    signs:["Whiny and demanding","Wants their own way","Separation anxiety may flare"],
+    tips:["Let them help with simple household tasks","Routine-based picture books","Encourage safe independence","Simple role play and imitation games"],
+    summary:"Your baby grasps that goals require sequences of actions — a 'program'. They start imitating daily life with clear intention, mimicking cooking, cleaning, and caregiving." },
+  { num:9,  name:"The World of Principles",           fussyStart:60, leapStart:64, leapEnd:64, sunnyStart:64, sunnyEnd:71,
+    abilities:["Tests rules deliberately","Empathy beginning to emerge","Simple problem solving","Vocabulary explosion","Running (awkwardly)"],
+    signs:["Boundary testing intensifies","Tantrums may get bigger","Very emotional and sensitive"],
+    tips:["Consistent, gentle boundaries","Explain 'why' in simple terms","Encourage empathy through play","Lots of outdoor time and physical activity"],
+    summary:"Your toddler starts to understand principles and rules — and inevitably tests every single one. Empathy and an early sense of conscience begin to form during this leap." },
+  { num:10, name:"The World of Systems",              fussyStart:71, leapStart:75, leapEnd:76, sunnyStart:76, sunnyEnd:84,
+    abilities:["Understands complex systems","Group play begins","Symbolic thinking develops","Pretend play flourishes","Emotional regulation developing"],
+    signs:["Biggest tantrums yet","Very demanding and persistent","Tests absolutely everything"],
+    tips:["Rich imaginative and pretend play","Social play with other toddlers","Introduce simple age-appropriate chores","Celebrate growing independence"],
+    summary:"The final leap — your toddler grasps that the world is made of interconnected systems. This marks the end of the Wonder Weeks period and the beginning of a new chapter." }
+];
+
+const BABY_COLORS = ['#c4713a','#3d5a47','#7baab8','#a06abf','#d4735a','#5a8a6e'];
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+let babies    = [];   // [{id, name, dueDate}]
+let activeIdx = 0;
+let currentPhase = null;
+
+function activeBaby()  { return babies[activeIdx] || null; }
+function activeDue()   { const b=activeBaby(); return b ? new Date(b.dueDate+'T00:00:00') : null; }
+
+// ═══════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════
+function addWeeks(d, w) { const r=new Date(d); r.setDate(r.getDate()+Math.round(w*7)); return r; }
+function fmtDate(d)     { return d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }
+function fmtShort(d)    { return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'}); }
+function todayStr()     { return new Date().toISOString().slice(0,10); }
+function dateStr(d)     { return d.toISOString().slice(0,10); }
+function correctedWeeks(dueDate) {
+  const today=new Date(); today.setHours(0,0,0,0);
+  return Math.floor((today-dueDate)/86400000)/7;
+}
+
+// ═══════════════════════════════════════════════════════════
+// PERSISTENCE
+// ═══════════════════════════════════════════════════════════
+function loadBabies() {
+  try {
+    const stored = JSON.parse(localStorage.getItem('ww_babies') || 'null');
+    if (stored && Array.isArray(stored) && stored.length) { babies = stored; return; }
+  } catch(e){}
+  // migrate legacy single due date
+  const legacy = localStorage.getItem('ww_due_date');
+  babies = [{ id:Date.now(), name:'Baby', dueDate: legacy || '2026-04-08', color: BABY_COLORS[0] }];
+}
+function saveBabies() { localStorage.setItem('ww_babies', JSON.stringify(babies)); }
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  loadBabies();
+  activeIdx = Math.min(parseInt(localStorage.getItem('ww_active')||'0'), babies.length-1);
+  renderTabs();
+  update();
+  initSwipeToDismiss();
+  initNotifBanner();
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+  }
+});
+
+function switchBaby(idx) {
+  activeIdx = idx;
+  localStorage.setItem('ww_active', idx);
+  renderTabs();
+  update();
+}
+
+function renderTabs() {
+  const wrap = document.getElementById('babyTabs');
+  wrap.innerHTML = '';
+  babies.forEach((b, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'baby-tab' + (i===activeIdx?' active':'');
+    btn.innerHTML = `<span class="tab-dot" style="background:${i===activeIdx?'var(--terracotta)':'rgba(255,255,255,.5)'}"></span>${b.name}`;
+    btn.onclick = () => switchBaby(i);
+    wrap.appendChild(btn);
+  });
+  const addBtn = document.createElement('button');
+  addBtn.className = 'add-baby-btn';
+  addBtn.textContent = '+ Add baby';
+  addBtn.onclick = openBabyEditor;
+  wrap.appendChild(addBtn);
+}
+
+function update() {
+  const due = activeDue();
+  if (!due) return;
+  const cw = correctedWeeks(due);
+  const baby = activeBaby();
+  // Header sub
+  const diffDays = Math.floor((new Date().setHours(0,0,0,0) - due)/86400000);
+  const ageStr = diffDays<0 ? `${Math.abs(diffDays)}d until due` : `${Math.floor(cw)}w ${diffDays%7}d corrected`;
+  document.getElementById('headerSub').textContent = `${baby.name} · ${ageStr}`;
+
+  renderMilestoneWidget(cw, due);
+  renderCurrentStatus(cw, due);
+  renderTimeline(cw, due);
+  renderNextUp(cw, due);
+  renderLeapCards(cw, due);
+  checkTodayNotifications(due);
+}
+
+// ═══════════════════════════════════════════════════════════
+// MILESTONE COUNTDOWN WIDGET
+// ═══════════════════════════════════════════════════════════
+function renderMilestoneWidget(cw, dueDate) {
+  const widget = document.getElementById('milestoneWidget');
+  if (cw < 0) { widget.classList.remove('visible'); return; }
+
+  // Find the single most relevant upcoming (or current) milestone
+  let milestone = null;
+
+  // Check if currently IN a leap or fussy — that's the milestone "now"
+  for (let i=0;i<LEAPS.length;i++) {
+    const l=LEAPS[i];
+    if (cw >= l.fussyStart && cw < l.leapStart) {
+      const leapDate = addWeeks(dueDate, l.leapStart);
+      const days = Math.ceil((leapDate - new Date().setHours(0,0,0,0))/86400000);
+      milestone = { type:'now', icon:'🌩', label:`Leap ${l.num} fussy period`, name:l.name,
+        sub:`Leap peaks ${fmtShort(leapDate)}`, days, daysLabel: days<=0?'today':`day${days===1?'':'s'}` };
+      break;
+    }
+    if (cw >= l.leapStart && cw <= l.leapEnd+0.5) {
+      const sunnyDate = addWeeks(dueDate, l.sunnyStart);
+      const days = Math.max(0, Math.ceil((sunnyDate - new Date().setHours(0,0,0,0))/86400000));
+      milestone = { type:'now', icon:'✦', label:`Leap ${l.num} happening now`, name:l.name,
+        sub:`Sunny period starts ${fmtShort(sunnyDate)}`, days, daysLabel:days<=0?'today':`day${days===1?'':'s'}` };
+      break;
+    }
+  }
+
+  // If sunny/newborn, find next fussy
+  if (!milestone) {
+    const upcoming = [];
+    LEAPS.forEach((l,i) => {
+      if (l.fussyStart > cw) upcoming.push({ type:'fussy', week:l.fussyStart, leap:l });
+    });
+    upcoming.sort((a,b)=>a.week-b.week);
+    if (upcoming.length) {
+      const next = upcoming[0];
+      const d = addWeeks(dueDate, next.week);
+      const today = new Date(); today.setHours(0,0,0,0);
+      const days = Math.ceil((d-today)/86400000);
+      milestone = { type:'fussy', icon:'🌩', label:`Next: Leap ${next.leap.num} fussy period`,
+        name:next.leap.name, sub:fmtDate(d), days, daysLabel:days===1?'day':'days' };
+    }
+  }
+
+  if (!milestone) {
+    widget.classList.remove('visible');
+    return;
+  }
+
+  widget.className = `milestone-widget visible type-${milestone.type}`;
+  document.getElementById('milestoneIcon').textContent = milestone.icon;
+  document.getElementById('milestoneLabel').textContent = milestone.label;
+  document.getElementById('milestoneName').textContent = milestone.name;
+  document.getElementById('milestoneSub').textContent = milestone.sub;
+  document.getElementById('milestoneDays').textContent = milestone.days <= 0 ? '🎉' : milestone.days;
+  document.getElementById('milestoneDaysLabel').textContent = milestone.days <= 0 ? 'today!' : milestone.daysLabel;
+  widget.classList.add('visible');
+}
+
+// ═══════════════════════════════════════════════════════════
+// TIMELINE
+// ═══════════════════════════════════════════════════════════
+function renderTimeline(cw, dueDate) {
+  const TW=84;
+  const track=document.getElementById('timelineTrack'), markers=document.getElementById('weekMarkers');
+  track.innerHTML=''; markers.innerHTML='';
+
+  const segs=[{type:'pre',start:0,end:4,label:'Newborn'}];
+  let prev=4;
+  LEAPS.forEach((leap,i)=>{
+    if(prev<leap.fussyStart) segs.push({type:'sunny',start:prev,end:leap.fussyStart,label:'☀',leapIndex:i-1});
+    segs.push({type:'fussy',start:leap.fussyStart,end:leap.leapStart,label:'≋',leapIndex:i});
+    segs.push({type:'leap',start:leap.leapStart,end:leap.leapEnd+0.5,label:`L${leap.num}`,leapIndex:i});
+    prev=leap.sunnyStart;
+  });
+  if(prev<TW) segs.push({type:'sunny',start:prev,end:TW,label:'☀',leapIndex:LEAPS.length-1});
+
+  segs.forEach(seg=>{
+    const pct=((seg.end-seg.start)/TW)*100;
+    const div=document.createElement('div');
+    div.className=`timeline-segment ${seg.type}`;
+    div.style.width=pct+'%';
+    const lbl=document.createElement('span');
+    lbl.className='seg-label';
+    if(pct>2) lbl.textContent=seg.label;
+    div.appendChild(lbl);
+    if(seg.type!=='pre') div.onclick=()=>openSegmentModal(seg,dueDate);
+    track.appendChild(div);
+  });
+
+  // Today marker
+  if(cw>=0&&cw<=TW){
+    const m=document.createElement('div');
+    m.className='current-marker';
+    m.style.left=(cw/TW*100)+'%';
+    track.appendChild(m);
+  }
+
+  const mw=[0,4,8,12,17,22,26,33,37,42,46,51,55,60,64,71,76,84];
+  mw.forEach((w,i)=>{
+    const div=document.createElement('div');
+    div.className='week-marker';
+    div.style.width=(((i<mw.length-1?mw[i+1]:84)-w)/TW*100)+'%';
+    div.textContent=`w${w}`;
+    markers.appendChild(div);
+  });
+  document.getElementById('timelineContainer').style.display='block';
+}
+
+// ═══════════════════════════════════════════════════════════
+// SEGMENT & LEAP MODALS
+// ═══════════════════════════════════════════════════════════
+function openSegmentModal(seg, dueDate) {
+  if(!dueDate) return;
+  if(seg.type==='leap'||seg.type==='fussy'){openLeapModal(seg.leapIndex,dueDate);return;}
+  if(seg.type==='sunny'){
+    const leap=LEAPS[seg.leapIndex];
+    const nextLeap=LEAPS[seg.leapIndex+1];
+    const sd=addWeeks(dueDate,seg.start), ed=addWeeks(dueDate,seg.end);
+    document.getElementById('modalContent').innerHTML=`
+      <div class="sunny-modal-header">☀ Sunny Period</div>
+      <div class="sunny-modal-sub">${leap?`After Leap ${leap.num}: ${leap.name}`:'Early sunny period'}</div>
+      <div class="date-pills">
+        <div class="date-pill"><span class="dp-label">Starts</span><span class="dp-date">${fmtDate(sd)}</span></div>
+        <div class="date-pill"><span class="dp-label">Ends</span><span class="dp-date">${fmtDate(ed)}</span></div>
+        <div class="date-pill"><span class="dp-label">Duration</span><span class="dp-date">~${Math.round(seg.end-seg.start)} weeks</span></div>
+      </div>
+      <p>This is a calmer, happier window. Your baby has just consolidated a major developmental leap and is now practising their new skills. Expect more contentment, better sleep, and lots of delightful new behaviours to discover.</p>
+      ${leap?`<div class="modal-section-title">Skills they're now practising</div><ul>${leap.abilities.map(a=>`<li>${a}</li>`).join('')}</ul>`:''}
+      ${nextLeap?`<div class="modal-section-title">What's next</div><p>The fussy run-up to <strong>Leap ${nextLeap.num} (${nextLeap.name})</strong> begins around <strong>${fmtDate(addWeeks(dueDate,nextLeap.fussyStart))}</strong> — approximately week ${nextLeap.fussyStart}.</p>`:'<p>This is the final sunny period — all 10 leaps are complete!</p>'}
+      <div class="modal-action-row">
+        <button class="modal-action-btn" onclick="downloadICal()">📅 Download iCal</button>
+      </div>`;
+    openModal();
+  }
+}
+
+function openLeapModal(index, dueDate) {
+  if(!dueDate) dueDate=activeDue();
+  const leap=LEAPS[index];
+  document.getElementById('modalContent').innerHTML=`
+    <h2>Leap ${leap.num}</h2>
+    <div class="modal-sub">${leap.name}</div>
+    <div class="timeline-range">
+      <span class="range-pill pill-fussy">Fussy: w${leap.fussyStart}–${leap.leapStart}</span>
+      <span class="range-pill pill-leap">Leap: w${leap.leapStart}–${leap.leapEnd}</span>
+      <span class="range-pill pill-sunny">Sunny from: w${leap.sunnyStart}</span>
+    </div>
+    <div class="date-pills">
+      <div class="date-pill"><span class="dp-label">Fussy starts</span><span class="dp-date">${fmtDate(addWeeks(dueDate,leap.fussyStart))}</span></div>
+      <div class="date-pill"><span class="dp-label">Leap peaks</span><span class="dp-date">${fmtDate(addWeeks(dueDate,leap.leapStart))}</span></div>
+      <div class="date-pill"><span class="dp-label">Sunny from</span><span class="dp-date">${fmtDate(addWeeks(dueDate,leap.sunnyStart))}</span></div>
+    </div>
+    <p>${leap.summary}</p>
+    <div class="modal-section-title">New abilities after this leap</div>
+    <ul>${leap.abilities.map(a=>`<li>${a}</li>`).join('')}</ul>
+    <div class="modal-section-title">Signs it's happening</div>
+    <ul>${leap.signs.map(s=>`<li>${s}</li>`).join('')}</ul>
+    <div class="modal-section-title">Tips for this period</div>
+    <ul>${leap.tips.map(t=>`<li>${t}</li>`).join('')}</ul>
+    <div class="modal-action-row">
+      <button class="modal-action-btn" onclick="downloadICal()">📅 Download iCal</button>
+    </div>`;
+  openModal();
+}
+
+// ═══════════════════════════════════════════════════════════
+// CURRENT STATUS
+// ═══════════════════════════════════════════════════════════
+function getCurrentPhase(w){
+  for(let i=0;i<LEAPS.length;i++){
+    const l=LEAPS[i];
+    if(w>=l.fussyStart&&w<l.leapStart) return{type:'fussy',leap:l,leapIndex:i};
+    if(w>=l.leapStart&&w<=l.leapEnd+0.5) return{type:'leap',leap:l,leapIndex:i};
+    if(w>l.leapEnd&&w<(i<LEAPS.length-1?LEAPS[i+1].fussyStart:84)) return{type:'sunny',leap:l,leapIndex:i};
+  }
+  if(w<4) return{type:'newborn',leap:null};
+  return{type:'sunny',leap:LEAPS[LEAPS.length-1],leapIndex:LEAPS.length-1};
+}
+
+function renderCurrentStatus(cw, dueDate) {
+  const card=document.getElementById('statusCard');
+  const phase=getCurrentPhase(cw);
+  currentPhase=phase;
+  if(cw<0){card.classList.remove('visible');return;}
+  card.classList.add('visible');
+  const t=document.getElementById('statusTitle'),d=document.getElementById('statusDesc');
+  const l=document.getElementById('statusLabel'),w=document.getElementById('statusWeeks'),c=document.getElementById('statusCard');
+  if(phase.type==='newborn'){
+    l.textContent='Current period';t.textContent='Early newborn phase';
+    d.textContent='Your baby is adjusting to the outside world. Focus on feeding, skin-to-skin, and rest. The first fussy period begins around week 4–5.';
+    w.textContent=`Week ${Math.floor(cw)} of approx 84`;c.style.borderLeftColor='var(--sky)';
+  } else if(phase.type==='fussy'){
+    l.textContent=`🌩 Fussy period — Leap ${phase.leap.num} approaching`;t.textContent=phase.leap.name;
+    d.textContent='Your baby is sensing big changes coming. Expect more crying, clinginess, and disrupted sleep as their brain prepares for a major developmental leap.';
+    w.textContent=`Leap ${phase.leap.num} peaks around week ${phase.leap.leapStart} (${fmtShort(addWeeks(dueDate,phase.leap.leapStart))})`;c.style.borderLeftColor='var(--fussy)';
+  } else if(phase.type==='leap'){
+    l.textContent=`✦ In the leap — Leap ${phase.leap.num}`;t.textContent=phase.leap.name;d.textContent=phase.leap.summary;
+    w.textContent=`Sunny period from ~week ${phase.leap.sunnyStart} (${fmtShort(addWeeks(dueDate,phase.leap.sunnyStart))})`;c.style.borderLeftColor='var(--terracotta)';
+  } else {
+    const next=LEAPS[phase.leapIndex+1];
+    if(next){
+      l.textContent='☀ Sunny period — enjoy it!';t.textContent=`After Leap ${phase.leap.num}: ${phase.leap.name}`;
+      d.textContent="Your baby has just made a big developmental leap. This is a calmer, happier window — they're practising new skills and consolidating what they've learned.";
+      const wu=Math.ceil(next.fussyStart-cw);
+      w.textContent=`Next fussy period ${wu>0?`in ~${wu}w`:'starting soon'} (${fmtShort(addWeeks(dueDate,next.fussyStart))})`;c.style.borderLeftColor='var(--sunny)';
+    } else {
+      l.textContent='☀ Beyond the Wonder Weeks';t.textContent='All 10 leaps complete';
+      d.textContent="Your toddler has completed all Wonder Weeks leaps. Their foundation is set for a lifetime of learning.";w.textContent='';c.style.borderLeftColor='var(--forest)';
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// LEAP CARDS
+// ═══════════════════════════════════════════════════════════
+function renderLeapCards(cw, dueDate) {
+  const grid=document.getElementById('leapsGrid');
+  grid.innerHTML='';
+  LEAPS.forEach((leap,i)=>{
+    const card=document.createElement('div');
+    card.className='leap-card';
+    const isActive=cw>=leap.fussyStart&&cw<=leap.sunnyStart+2;
+    const isPast=cw>leap.sunnyStart+2;
+    const isSoon=!isActive&&!isPast&&leap.fussyStart-cw<=3&&leap.fussyStart-cw>0;
+    if(isActive)card.classList.add('active');
+    if(isPast)card.classList.add('past');
+    if(isSoon)card.classList.add('upcoming-soon');
+    const badge=isActive?'<span class="leap-badge badge-active">Now</span>':isSoon?'<span class="leap-badge badge-soon">Soon</span>':isPast?'<span class="leap-badge badge-past">Done</span>':'';
+    card.innerHTML=`${badge}<div class="leap-num">${leap.num}</div><div class="leap-name">${leap.name}</div><div class="leap-week">${fmtShort(addWeeks(dueDate,leap.fussyStart))}</div>`;
+    card.onclick=()=>openLeapModal(i,dueDate);
+    grid.appendChild(card);
+  });
+  document.getElementById('leapsContainer').style.display='block';
+}
+
+// ═══════════════════════════════════════════════════════════
+// NEXT UP
+// ═══════════════════════════════════════════════════════════
+function renderNextUp(cw, dueDate) {
+  const list=document.getElementById('nextList'),section=document.getElementById('nextSection');
+  list.innerHTML='';
+  const upcoming=[];
+  LEAPS.forEach((leap,i)=>{
+    if(leap.fussyStart>cw) upcoming.push({week:leap.fussyStart,label:`Leap ${leap.num} fussy period`,name:leap.name,icon:'🌩',color:'var(--fussy-light)',leapIndex:i});
+    if(leap.leapStart>cw)  upcoming.push({week:leap.leapStart, label:`Leap ${leap.num} peaks`,       name:leap.name,icon:'✦', color:'#f5ddd0',leapIndex:i});
+  });
+  upcoming.sort((a,b)=>a.week-b.week);
+  const next3=upcoming.slice(0,3);
+  if(!next3.length){section.style.display='none';return;}
+  next3.forEach(item=>{
+    const wa=item.week-cw;
+    const div=document.createElement('div');
+    div.className='next-row';
+    div.innerHTML=`<div class="next-icon" style="background:${item.color}">${item.icon}</div><div class="next-info"><strong>${item.label}</strong><span>${item.name}</span></div><div class="next-countdown">~${wa<1?'<1w':Math.ceil(wa)+'w'}<small>${fmtShort(addWeeks(dueDate,item.week))}</small></div>`;
+    div.onclick=()=>openLeapModal(item.leapIndex,dueDate);
+    list.appendChild(div);
+  });
+  section.style.display='block';
+}
+
+// ═══════════════════════════════════════════════════════════
+// ICAL DOWNLOAD
+// ═══════════════════════════════════════════════════════════
+function icalDate(d) {
+  return d.toISOString().replace(/[-:]/g,'').slice(0,8);
+}
+function icalEvent(uid, summary, description, dtstart, dtend, color) {
+  return [
+    'BEGIN:VEVENT',
+    `UID:${uid}`,
+    `DTSTART;VALUE=DATE:${icalDate(dtstart)}`,
+    `DTEND;VALUE=DATE:${icalDate(dtend)}`,
+    `SUMMARY:${summary}`,
+    `DESCRIPTION:${description.replace(/\n/g,'\\n')}`,
+    'END:VEVENT'
+  ].join('\r\n');
+}
+
+function downloadICal() {
+  const due = activeDue();
+  const baby = activeBaby();
+  if(!due) return;
+
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Wonder Weeks Tracker//EN',
+    'CALSCALE:GREGORIAN',
+    `X-WR-CALNAME:Wonder Weeks – ${baby.name}`,
+    'X-WR-TIMEZONE:Europe/London',
+    'METHOD:PUBLISH'
+  ];
+
+  LEAPS.forEach(leap => {
+    const fussyStart = addWeeks(due, leap.fussyStart);
+    const leapStart  = addWeeks(due, leap.leapStart);
+    const leapEnd    = addWeeks(due, leap.leapEnd+1);
+    const sunnyStart = addWeeks(due, leap.sunnyStart);
+    const sunnyEnd   = addWeeks(due, leap.sunnyEnd);
+
+    // Fussy period
+    const fussyEnd = new Date(leapStart); fussyEnd.setDate(fussyEnd.getDate()+1);
+    lines.push(icalEvent(
+      `ww-${baby.id}-fussy-${leap.num}@wonderweeks`,
+      `🌩 Wonder Weeks: Leap ${leap.num} fussy period – ${baby.name}`,
+      `${leap.name}\\n\\nExpect clinginess, disrupted sleep, and more crying as their brain prepares for a major developmental leap. It won't last long!`,
+      fussyStart, fussyEnd
+    ));
+
+    // Leap
+    lines.push(icalEvent(
+      `ww-${baby.id}-leap-${leap.num}@wonderweeks`,
+      `✦ Wonder Weeks: Leap ${leap.num} – ${baby.name}`,
+      `${leap.name}\\n\\n${leap.summary}`,
+      leapStart, leapEnd
+    ));
+
+    // Sunny period
+    lines.push(icalEvent(
+      `ww-${baby.id}-sunny-${leap.num}@wonderweeks`,
+      `☀ Wonder Weeks: Sunny period after Leap ${leap.num} – ${baby.name}`,
+      `${leap.name}\\n\\nA calmer, happier window. ${baby.name} is practising new skills:\\n${leap.abilities.join(', ')}`,
+      sunnyStart, sunnyEnd
+    ));
+  });
+
+  lines.push('END:VCALENDAR');
+  const ics = lines.join('\r\n');
+  const blob = new Blob([ics], {type:'text/calendar;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href=url; a.download=`wonder-weeks-${baby.name.toLowerCase().replace(/\s+/g,'-')}.ics`;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},1000);
+  closeModal();
+}
+
+// ═══════════════════════════════════════════════════════════
+// SHARE CARD (Canvas)
+// ═══════════════════════════════════════════════════════════
+
+// Wrap text onto multiple lines within maxWidth, return array of lines
+function wrapText(ctx, text, maxWidth) {
+  const words = text.split(' ');
+  const lines = [];
+  let line = '';
+  words.forEach(word => {
+    const test = line ? line + ' ' + word : word;
+    if (ctx.measureText(test).width > maxWidth && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = test;
+    }
+  });
+  if (line) lines.push(line);
+  return lines;
+}
+
+function openShareModal() {
+  const due = activeDue();
+  const baby = activeBaby();
+  if(!due) return;
+
+  const cw = correctedWeeks(due);
+  const phase = getCurrentPhase(cw);
+  const canvas = document.getElementById('shareCanvas');
+  canvas.style.display = 'block';
+
+  // Taller card to fit leap detail
+  const W=800, H=520;
+  canvas.width=W; canvas.height=H;
+  const ctx = canvas.getContext('2d');
+
+  // ── Resolve the leap to feature ──────────────────────────
+  // Current: fussy or leap → use that leap
+  // Sunny: show the leap just completed, with "next" note
+  // Newborn: no leap yet
+  let featuredLeap = null;
+  let phaseColor = '#3d5a47';
+  let phaseBadge = '';
+  let contextLine = '';  // extra line below leap name
+  let isNextLeap = false;
+
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  if (phase.type === 'fussy') {
+    featuredLeap = phase.leap;
+    phaseColor = '#d4735a';
+    phaseBadge = `🌩 Fussy period · Leap ${phase.leap.num} approaching`;
+    const daysTo = Math.ceil((addWeeks(due, phase.leap.leapStart) - today) / 86400000);
+    contextLine = `Leap peaks in ${daysTo} day${daysTo===1?'':'s'} · ${fmtShort(addWeeks(due, phase.leap.leapStart))}`;
+  } else if (phase.type === 'leap') {
+    featuredLeap = phase.leap;
+    phaseColor = '#c4713a';
+    phaseBadge = `✦ Leap ${phase.leap.num} in progress`;
+    const daysTo = Math.ceil((addWeeks(due, phase.leap.sunnyStart) - today) / 86400000);
+    contextLine = `Sunny period in ${Math.max(0,daysTo)} day${daysTo===1?'':'s'} · ${fmtShort(addWeeks(due, phase.leap.sunnyStart))}`;
+  } else if (phase.type === 'sunny' && phase.leap) {
+    // Show next leap as "coming up"
+    const nextLeap = LEAPS[phase.leapIndex + 1];
+    if (nextLeap) {
+      featuredLeap = nextLeap;
+      phaseColor = '#b8960a';
+      phaseBadge = `☀ Sunny period · Leap ${nextLeap.num} coming up`;
+      const daysTo = Math.ceil((addWeeks(due, nextLeap.fussyStart) - today) / 86400000);
+      contextLine = `Fussy period starts in ${daysTo} day${daysTo===1?'':'s'} · ${fmtShort(addWeeks(due, nextLeap.fussyStart))}`;
+      isNextLeap = true;
+    } else {
+      featuredLeap = phase.leap;
+      phaseColor = '#b8960a';
+      phaseBadge = `☀ All 10 leaps complete`;
+      contextLine = 'Beyond the Wonder Weeks';
+    }
+  } else if (phase.type === 'newborn') {
+    phaseColor = '#7baab8';
+    phaseBadge = 'Newborn phase';
+    contextLine = 'First leap begins around week 4–5';
+  }
+
+  // ── Background ───────────────────────────────────────────
+  const bg = ctx.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0, '#2e4438'); bg.addColorStop(1, '#1e2e25');
+  ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
+
+  // Decorative arcs (top-right)
+  [180, 120, 70].forEach((r, i) => {
+    ctx.beginPath(); ctx.arc(W-60, 60, r, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(255,255,255,${0.03 + i*0.01})`; ctx.fill();
+  });
+
+  // Left accent bar (colour of phase)
+  ctx.fillStyle = phaseColor;
+  ctx.beginPath(); ctx.roundRect(0, 0, 6, H, [0,3,3,0]); ctx.fill();
+
+  // ── Header: branding + baby name ─────────────────────────
+  ctx.fillStyle = 'rgba(253,246,236,0.45)';
+  ctx.font = '400 15px DM Sans, sans-serif';
+  ctx.fillText('✦ Wonder Weeks', 32, 38);
+
+  ctx.fillStyle = '#fdf6ec';
+  ctx.font = 'bold 42px Playfair Display, serif';
+  ctx.fillText(baby.name, 32, 88);
+
+  // Age line
+  const diffDays = Math.floor((today - due) / 86400000);
+  const ageStr = diffDays < 0
+    ? `${Math.abs(diffDays)} days until due`
+    : `${Math.floor(cw)} weeks ${diffDays % 7} days (corrected age)`;
+  ctx.fillStyle = 'rgba(253,246,236,0.55)';
+  ctx.font = '400 17px DM Sans, sans-serif';
+  ctx.fillText(ageStr, 32, 116);
+
+  // ── Phase badge pill ─────────────────────────────────────
+  ctx.font = '600 14px DM Sans, sans-serif';
+  const pillW = Math.min(W-64, ctx.measureText(phaseBadge).width + 36);
+  ctx.fillStyle = phaseColor;
+  ctx.beginPath(); ctx.roundRect(32, 134, pillW, 30, 15); ctx.fill();
+  ctx.fillStyle = 'white';
+  ctx.fillText(phaseBadge, 50, 154);
+
+  // ── Divider ──────────────────────────────────────────────
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(32, 178); ctx.lineTo(W-32, 178); ctx.stroke();
+
+  if (featuredLeap) {
+    // ── Leap name ───────────────────────────────────────────
+    const leapLabel = isNextLeap ? `Next up: Leap ${featuredLeap.num}` : `Leap ${featuredLeap.num}`;
+    ctx.fillStyle = 'rgba(253,246,236,0.45)';
+    ctx.font = '500 13px DM Sans, sans-serif';
+    ctx.fillText(leapLabel.toUpperCase(), 32, 202);
+
+    ctx.fillStyle = '#fdf6ec';
+    ctx.font = 'italic 600 26px Playfair Display, serif';
+    ctx.fillText(featuredLeap.name, 32, 232);
+
+    // Context line (dates / countdown)
+    ctx.fillStyle = phaseColor === '#b8960a' ? '#f5d97a' : (phaseColor === '#d4735a' ? '#f0a890' : '#e8956a');
+    ctx.font = '500 14px DM Sans, sans-serif';
+    ctx.fillText(contextLine, 32, 254);
+
+    // ── Summary ──────────────────────────────────────────────
+    ctx.fillStyle = 'rgba(253,246,236,0.72)';
+    ctx.font = '400 15px DM Sans, sans-serif';
+    const summaryLines = wrapText(ctx, featuredLeap.summary, W - 80);
+    const maxSummaryLines = 2;
+    summaryLines.slice(0, maxSummaryLines).forEach((line, i) => {
+      // Truncate last line if needed
+      const isLast = i === maxSummaryLines - 1 && summaryLines.length > maxSummaryLines;
+      ctx.fillText(isLast ? line.slice(0,-3)+'…' : line, 32, 280 + i * 22);
+    });
+
+    // ── Two columns: abilities + signs ───────────────────────
+    const colY = 334;
+    const col1x = 32, col2x = W/2 + 16;
+    const colW = W/2 - 48;
+
+    // Column headers
+    ctx.fillStyle = phaseColor;
+    ctx.font = '600 11px DM Sans, sans-serif';
+    ctx.fillText('NEW ABILITIES', col1x, colY);
+    ctx.fillText('WHAT TO EXPECT', col2x, colY);
+
+    // Column items — up to 3 each
+    ctx.fillStyle = 'rgba(253,246,236,0.8)';
+    ctx.font = '400 13px DM Sans, sans-serif';
+    featuredLeap.abilities.slice(0,3).forEach((a, i) => {
+      const lines = wrapText(ctx, '· ' + a, colW);
+      ctx.fillText(lines[0].length > 38 ? lines[0].slice(0,38)+'…' : lines[0], col1x, colY + 20 + i*20);
+    });
+    featuredLeap.signs.slice(0,3).forEach((s, i) => {
+      const text = '· ' + s;
+      ctx.fillText(text.length > 38 ? text.slice(0,38)+'…' : text, col2x, colY + 20 + i*20);
+    });
+
+    // ── Divider ───────────────────────────────────────────────
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(W/2, colY - 8); ctx.lineTo(W/2, colY + 80); ctx.stroke();
+
+  } else {
+    // Newborn: simple message
+    ctx.fillStyle = 'rgba(253,246,236,0.7)';
+    ctx.font = '400 18px DM Sans, sans-serif';
+    ctx.fillText('Your baby is adjusting to the outside world.', 32, 220);
+    ctx.fillText('The first Wonder Weeks leap begins around week 4–5.', 32, 248);
+  }
+
+  // ── Footer branding ───────────────────────────────────────
+  ctx.fillStyle = 'rgba(253,246,236,0.22)';
+  ctx.font = '400 12px DM Sans, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText('wonder-weeks.app', W-32, H-16);
+  ctx.textAlign = 'left';
+
+  // ── Show in modal ─────────────────────────────────────────
+  document.getElementById('modalContent').innerHTML=`
+    <h2>Share card</h2>
+    <div class="modal-sub">Save or share ${baby.name}'s current Wonder Weeks status</div>
+    <div class="share-preview">
+      <img id="shareImg" src="${canvas.toDataURL('image/png')}" style="width:100%;border-radius:14px;display:block" />
+    </div>
+    <div class="share-actions">
+      <button class="share-dl-btn" onclick="downloadShareCard()">⬇ Save image</button>
+      <button class="share-copy-btn" onclick="copyShareCard()">Copy</button>
+    </div>`;
+  canvas.style.display='none';
+  openModal();
+}
+
+function downloadShareCard() {
+  const img = document.getElementById('shareImg');
+  const a = document.createElement('a');
+  a.href=img.src;
+  a.download=`wonder-weeks-${activeBaby().name.toLowerCase().replace(/\s+/g,'-')}.png`;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+async function copyShareCard() {
+  try {
+    const img = document.getElementById('shareImg');
+    const res = await fetch(img.src);
+    const blob = await res.blob();
+    await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
+    const btn = document.querySelector('.share-copy-btn');
+    btn.textContent='Copied!';
+    setTimeout(()=>btn.textContent='Copy',2000);
+  } catch(e) {
+    alert('Long-press the image to save it to your camera roll.');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// BABY EDITOR MODAL
+// ═══════════════════════════════════════════════════════════
+function openBabyEditor() {
+  let editBabies = JSON.parse(JSON.stringify(babies));
+
+  function renderEditor() {
+    document.getElementById('modalContent').innerHTML=`
+      <h2>Babies</h2>
+      <div class="modal-sub">Add, rename, or update due dates</div>
+      <div class="baby-editor" id="babyEditorList">
+        ${editBabies.map((b,i)=>`
+          <div class="baby-editor-row" data-idx="${i}">
+            <div class="baby-color" style="background:${b.color||BABY_COLORS[i%BABY_COLORS.length]}"></div>
+            <div class="baby-editor-fields">
+              <input class="baby-editor-input" type="text" placeholder="Name" value="${b.name}" data-field="name" data-idx="${i}" maxlength="20">
+              <input class="baby-editor-input" type="date" value="${b.dueDate}" data-field="dueDate" data-idx="${i}">
+            </div>
+            ${editBabies.length>1?`<button class="baby-del-btn" data-del="${i}">✕</button>`:''}
+          </div>`).join('')}
+      </div>
+      <div class="baby-add-row">
+        <button class="baby-add-new" id="addNewBabyBtn">+ Add another baby</button>
+      </div>
+      <button class="save-babies-btn" id="saveBabiesBtn">Save</button>`;
+
+    document.getElementById('babyEditorList').addEventListener('input', e=>{
+      const el=e.target;
+      if(el.dataset.field&&el.dataset.idx!==undefined){
+        editBabies[+el.dataset.idx][el.dataset.field]=el.value;
+      }
+    });
+    document.getElementById('babyEditorList').addEventListener('click', e=>{
+      const btn=e.target.closest('[data-del]');
+      if(btn){ editBabies.splice(+btn.dataset.del,1); renderEditor(); }
+    });
+    document.getElementById('addNewBabyBtn').onclick=()=>{
+      editBabies.push({id:Date.now(),name:'Baby',dueDate:todayStr(),color:BABY_COLORS[editBabies.length%BABY_COLORS.length]});
+      renderEditor();
+    };
+    document.getElementById('saveBabiesBtn').onclick=()=>{
+      // Validate
+      const valid=editBabies.every(b=>b.name.trim()&&b.dueDate);
+      if(!valid){alert('Please fill in a name and due date for each baby.');return;}
+      babies=editBabies.map(b=>({...b,name:b.name.trim()}));
+      activeIdx=Math.min(activeIdx,babies.length-1);
+      saveBabies();
+      renderTabs();
+      update();
+      closeModal();
+    };
+  }
+  renderEditor();
+  openModal();
+}
+
+// ═══════════════════════════════════════════════════════════
+// SWIPE TO DISMISS
+// ═══════════════════════════════════════════════════════════
+function initSwipeToDismiss() {
+  const overlay=document.getElementById('modalOverlay');
+  const modal=document.getElementById('modal');
+  const handle=document.getElementById('modalHandle');
+  let startY=0,currentY=0,isDragging=false;
+  const THRESH=80;
+
+  function onStart(y){startY=currentY=y;isDragging=true;modal.style.transition='none';overlay.style.transition='none';}
+  function onMove(y){
+    if(!isDragging)return;
+    currentY=y;
+    const dy=currentY-startY;
+    if(modal.scrollTop>4&&dy>0){isDragging=false;modal.style.transform='';overlay.style.opacity='';return;}
+    if(dy<=0){modal.style.transform='';overlay.style.opacity='';return;}
+    modal.style.transform=`translateY(${dy*.85}px)`;
+    overlay.style.background=`rgba(42,36,32,${Math.max(0,.5-dy/400)})`;
+  }
+  function onEnd(){
+    if(!isDragging)return;
+    isDragging=false;
+    if(currentY-startY>THRESH){
+      modal.style.transition='transform .28s ease';overlay.style.transition='opacity .28s ease';
+      modal.style.transform='translateY(100%)';overlay.style.opacity='0';
+      setTimeout(()=>{overlay.classList.remove('open');modal.style.cssText='';overlay.style.cssText='';},280);
+    } else {
+      modal.style.transition='transform .22s cubic-bezier(.25,1.5,.5,1)';
+      modal.style.transform='translateY(0)';overlay.style.background='';
+      setTimeout(()=>{modal.style.transition='';overlay.style.transition='';},220);
+    }
+  }
+  modal.addEventListener('touchstart',e=>onStart(e.touches[0].clientY),{passive:true});
+  modal.addEventListener('touchmove',e=>onMove(e.touches[0].clientY),{passive:true});
+  modal.addEventListener('touchend',()=>onEnd(),{passive:true});
+  handle.addEventListener('mousedown',e=>{
+    onStart(e.clientY);
+    const mm=ev=>onMove(ev.clientY), mu=()=>{onEnd();window.removeEventListener('mousemove',mm);window.removeEventListener('mouseup',mu)};
+    window.addEventListener('mousemove',mm);window.addEventListener('mouseup',mu);
+  });
+  overlay.addEventListener('click',e=>{if(e.target===overlay)closeModal();});
+}
+
+function openModal(){
+  const overlay=document.getElementById('modalOverlay'),modal=document.getElementById('modal'),handle=document.getElementById('modalHandle');
+  modal.scrollTop=0; overlay.classList.add('open');
+  handle.classList.remove('hint'); void handle.offsetWidth; handle.classList.add('hint');
+}
+function closeModal(){
+  const overlay=document.getElementById('modalOverlay'),modal=document.getElementById('modal');
+  modal.style.transition='transform .25s ease';overlay.style.transition='opacity .25s ease';
+  modal.style.transform='translateY(100%)';overlay.style.opacity='0';
+  setTimeout(()=>{overlay.classList.remove('open');modal.style.cssText='';overlay.style.cssText='';},250);
+}
+
+// ═══════════════════════════════════════════════════════════
+// NOTIFICATIONS
+// ═══════════════════════════════════════════════════════════
+const NOTIF_SUPPORTED = typeof window!=='undefined' && 'Notification' in window;
+
+function fireNotification(title,body,tag){
+  if(!NOTIF_SUPPORTED)return;
+  try{new Notification(title,{body,tag,icon:'icons/icon-192x192.png'});}catch(e){}
+}
+
+function checkTodayNotifications(dueDate){
+  if(!dueDate||!NOTIF_SUPPORTED)return;
+  if(Notification.permission!=='granted')return;
+  const lastCheck=localStorage.getItem('ww_last_notif_check');
+  const today=todayStr();
+  if(lastCheck===today)return;
+  localStorage.setItem('ww_last_notif_check',today);
+  const baby=activeBaby();
+  LEAPS.forEach((leap,idx)=>{
+    const events=[
+      {d:addWeeks(dueDate,leap.fussyStart),title:`🌩 ${baby.name}: Leap ${leap.num} fussy period starting`,body:`${leap.name} — expect some clinginess. It won't last long!`},
+      {d:addWeeks(dueDate,leap.leapStart), title:`✦ ${baby.name}: Leap ${leap.num} is happening now`,    body:`${leap.name} — their brain is making a big leap today!`},
+      {d:addWeeks(dueDate,leap.sunnyStart),title:`☀ ${baby.name}: Sunny period after Leap ${leap.num}`,  body:`The hard part is over! Enjoy the calmer window ahead.`}
+    ];
+    events.forEach((ev,i)=>{
+      if(dateStr(ev.d)===today) setTimeout(()=>fireNotification(ev.title,ev.body,`ww-${today}-${idx}-${i}`),i*800);
+    });
+  });
+}
+
+function initNotifBanner(){
+  const banner=document.getElementById('notifBanner');
+  if(localStorage.getItem('ww_notif_dismissed')==='true'){banner.style.display='none';return;}
+  if(!NOTIF_SUPPORTED){banner.style.display='none';return;}
+  const p=Notification.permission;
+  if(p==='granted'){
+    banner.className='notif-banner granted visible';
+    document.getElementById('notifBannerText').textContent='🔔 Leap notifications are enabled';
+    document.getElementById('notifBannerBtn').style.display='none';
+    setTimeout(()=>banner.classList.remove('visible'),4000);
+  } else if(p==='denied'){
+    banner.className='notif-banner denied visible';
+    document.getElementById('notifBannerText').textContent='Notifications blocked — enable in browser settings for leap alerts';
+    document.getElementById('notifBannerBtn').style.display='none';
+  } else {
+    banner.className='notif-banner ask visible';
+  }
+}
+async function requestNotifPermission(){
+  if(!NOTIF_SUPPORTED)return;
+  const r=await Notification.requestPermission();
+  if(r==='granted'){fireNotification('✦ Wonder Weeks on!',"You'll be notified when each leap starts.",'ww-welcome');}
+  initNotifBanner();
+}
+function dismissNotifBanner(){
+  localStorage.setItem('ww_notif_dismissed','true');
+  document.getElementById('notifBanner').classList.remove('visible');
+  setTimeout(()=>document.getElementById('notifBanner').style.display='none',300);
+}
+</script>
+</body>
+</html>
