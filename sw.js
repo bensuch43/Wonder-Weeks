@@ -1,5 +1,5 @@
-// Wonder Weeks — Service Worker v2
-const CACHE_NAME = 'wonder-weeks-v2';
+// Wonder Weeks — Service Worker v5
+const CACHE_NAME = 'wonder-weeks-v5';
 const ASSETS = [
   '/Wonder-Weeks/',
   '/Wonder-Weeks/index.html',
