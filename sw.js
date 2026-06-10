@@ -1,11 +1,11 @@
-// Wonder Weeks — Service Worker v5
-const CACHE_NAME = 'wonder-weeks-v5';
+// Wonder Weeks — Service Worker v3
+const CACHE_NAME = 'wonder-weeks-v3';
 const ASSETS = [
-  '/Wonder-Weeks/',
-  '/Wonder-Weeks/index.html',
-  '/Wonder-Weeks/manifest.json',
-  '/Wonder-Weeks/icons/icon-192x192.png',
-  '/Wonder-Weeks/icons/icon-512x512.png'
+  './',
+  './index.html',
+  './manifest.json',
+  './icons/icon-192x192.png',
+  './icons/icon-512x512.png'
 ];
 
 self.addEventListener('install', event => {
@@ -26,7 +26,6 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  // Only handle GET requests for our own origin
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
 
