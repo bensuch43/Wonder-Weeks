@@ -376,6 +376,14 @@ function saveBabies() { localStorage.setItem('ww_babies', JSON.stringify(babies)
 // ═══════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════
+// Register SW immediately — before DOMContentLoaded so it's ready
+// when beforeinstallprompt fires (which can happen very early)
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js')
+    .then(reg => console.log('[WW] SW registered, scope:', reg.scope))
+    .catch(err => console.warn('[WW] SW registration failed:', err));
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   loadBabies();
   activeIdx = Math.min(parseInt(localStorage.getItem('ww_active')||'0'), babies.length-1);
@@ -383,9 +391,6 @@ document.addEventListener('DOMContentLoaded', () => {
   update();
   initSwipeToDismiss();
   initNotifBanner();
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{}));
-  }
 });
 
 function switchBaby(idx) {
@@ -694,27 +699,39 @@ function renderNextUp(cw, dueDate) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// ICAL DOWNLOAD
+// ICAL DOWNLOAD — 20 events: fussy period + sunny period per leap
 // ═══════════════════════════════════════════════════════════
 function icalDate(d) {
-  return d.toISOString().replace(/[-:]/g,'').slice(0,8);
+  // All-day date format: YYYYMMDD
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}${m}${day}`;
 }
-function icalEvent(uid, summary, description, dtstart, dtend, color) {
+
+function icalEscape(str) {
+  return str.replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');
+}
+
+function icalEvent(uid, summary, description, dtstart, dtend) {
+  // dtend for all-day events is exclusive (day after last day)
+  const end = new Date(dtend);
+  end.setDate(end.getDate() + 1);
   return [
     'BEGIN:VEVENT',
     `UID:${uid}`,
     `DTSTART;VALUE=DATE:${icalDate(dtstart)}`,
-    `DTEND;VALUE=DATE:${icalDate(dtend)}`,
-    `SUMMARY:${summary}`,
-    `DESCRIPTION:${description.replace(/\n/g,'\\n')}`,
+    `DTEND;VALUE=DATE:${icalDate(end)}`,
+    `SUMMARY:${icalEscape(summary)}`,
+    `DESCRIPTION:${icalEscape(description)}`,
     'END:VEVENT'
   ].join('\r\n');
 }
 
 function downloadICal() {
-  const due = activeDue();
+  const due  = activeDue();
   const baby = activeBaby();
-  if(!due) return;
+  if (!due) return;
 
   const lines = [
     'BEGIN:VCALENDAR',
@@ -727,46 +744,45 @@ function downloadICal() {
   ];
 
   LEAPS.forEach(leap => {
-    const fussyStart = addWeeks(due, leap.fussyStart);
-    const leapStart  = addWeeks(due, leap.leapStart);
-    const leapEnd    = addWeeks(due, leap.leapEnd+1);
-    const sunnyStart = addWeeks(due, leap.sunnyStart);
-    const sunnyEnd   = addWeeks(due, leap.sunnyEnd);
+    // ── Event 1: Fussy period ─────────────────────────────
+    // Spans from fussy start to the day before the sunny period
+    // (i.e. covers the fussy run-up AND the leap itself as one stormy block)
+    const fussyFrom = addWeeks(due, leap.fussyStart);
+    const fussyTo   = addWeeks(due, leap.sunnyStart - (1/7)); // day before sunny
 
-    // Fussy period
-    const fussyEnd = new Date(leapStart); fussyEnd.setDate(fussyEnd.getDate()+1);
     lines.push(icalEvent(
       `ww-${baby.id}-fussy-${leap.num}@wonderweeks`,
-      `🌩 Wonder Weeks: Leap ${leap.num} fussy period – ${baby.name}`,
-      `${leap.name}\\n\\nExpect clinginess, disrupted sleep, and more crying as their brain prepares for a major developmental leap. It won't last long!`,
-      fussyStart, fussyEnd
+      `🌩 Leap ${leap.num} – Fussy Period (${baby.name})`,
+      `Wonder Weeks Leap ${leap.num}: ${leap.name}\n\nWhat to expect: ${leap.signs.slice(0,3).join(', ')}.\n\nThis won't last long — a sunny period follows!`,
+      fussyFrom,
+      fussyTo
     ));
 
-    // Leap
-    lines.push(icalEvent(
-      `ww-${baby.id}-leap-${leap.num}@wonderweeks`,
-      `✦ Wonder Weeks: Leap ${leap.num} – ${baby.name}`,
-      `${leap.name}\\n\\n${leap.summary}`,
-      leapStart, leapEnd
-    ));
+    // ── Event 2: Sunny period ─────────────────────────────
+    // Spans from sunny start to sunny end
+    const sunnyFrom = addWeeks(due, leap.sunnyStart);
+    const sunnyTo   = addWeeks(due, leap.sunnyEnd);
 
-    // Sunny period
     lines.push(icalEvent(
       `ww-${baby.id}-sunny-${leap.num}@wonderweeks`,
-      `☀ Wonder Weeks: Sunny period after Leap ${leap.num} – ${baby.name}`,
-      `${leap.name}\\n\\nA calmer, happier window. ${baby.name} is practising new skills:\\n${leap.abilities.join(', ')}`,
-      sunnyStart, sunnyEnd
+      `☀ Leap ${leap.num} – Sunny Period (${baby.name})`,
+      `Wonder Weeks Leap ${leap.num}: ${leap.name}\n\nNew abilities to look for: ${leap.abilities.slice(0,3).join(', ')}.`,
+      sunnyFrom,
+      sunnyTo
     ));
   });
 
   lines.push('END:VCALENDAR');
-  const ics = lines.join('\r\n');
-  const blob = new Blob([ics], {type:'text/calendar;charset=utf-8'});
+
+  const ics  = lines.join('\r\n');
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
-  a.href=url; a.download=`wonder-weeks-${baby.name.toLowerCase().replace(/\s+/g,'-')}.ics`;
-  document.body.appendChild(a); a.click();
-  setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},1000);
+  a.href     = url;
+  a.download = `wonder-weeks-${baby.name.toLowerCase().replace(/\s+/g,'-')}.ics`;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
   closeModal();
 }
 
@@ -1183,11 +1199,12 @@ function requestNotifPermission(){
 // ═══════════════════════════════════════════════════════════
 let _installPrompt = null;
 
+// beforeinstallprompt fires before DOMContentLoaded on repeat visits
+// so we listen at the top level immediately
 window.addEventListener('beforeinstallprompt', e => {
-  // Prevent Chrome showing its mini-infobar
+  console.log('[WW] beforeinstallprompt fired');
   e.preventDefault();
   _installPrompt = e;
-  // Show our own banner if not dismissed
   if (localStorage.getItem('ww_install_dismissed') !== 'true') {
     const banner = document.getElementById('installBanner');
     if (banner) banner.style.display = 'flex';
@@ -1195,25 +1212,90 @@ window.addEventListener('beforeinstallprompt', e => {
 });
 
 window.addEventListener('appinstalled', () => {
+  console.log('[WW] App installed');
   _installPrompt = null;
   const banner = document.getElementById('installBanner');
   if (banner) banner.style.display = 'none';
 });
 
 function triggerInstall() {
-  if (!_installPrompt) return;
-  _installPrompt.prompt();
-  _installPrompt.userChoice.then(choice => {
-    if (choice.outcome === 'accepted') {
-      document.getElementById('installBanner').style.display = 'none';
-    }
-    _installPrompt = null;
-  });
+  if (_installPrompt) {
+    _installPrompt.prompt();
+    _installPrompt.userChoice.then(choice => {
+      console.log('[WW] Install choice:', choice.outcome);
+      if (choice.outcome === 'accepted') {
+        document.getElementById('installBanner').style.display = 'none';
+      }
+      _installPrompt = null;
+    });
+  } else {
+    // No prompt available — show manual instructions
+    showManualInstallModal();
+  }
 }
 
 function dismissInstallBanner() {
   localStorage.setItem('ww_install_dismissed', 'true');
   document.getElementById('installBanner').style.display = 'none';
+}
+
+function showManualInstallModal() {
+  // Check why install prompt isn't available and give targeted advice
+  let swStatus = 'Checking...';
+  let reason = '';
+
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
+
+  if (isStandalone) {
+    document.getElementById('modalContent').innerHTML = `
+      <h2>Already installed ✓</h2>
+      <div class="modal-sub">Wonder Weeks is running as an app</div>
+      <p>You're already using the installed version. You can find it on your home screen.</p>`;
+    openModal();
+    return;
+  }
+
+  navigator.serviceWorker.getRegistration('./sw.js').then(reg => {
+    const swOk = !!reg;
+    document.getElementById('modalContent').innerHTML = `
+      <h2>Install Wonder Weeks</h2>
+      <div class="modal-sub">Add to your home screen for the full app experience</div>
+
+      <div class="modal-section-title">How to install on Android (Chrome)</div>
+      <ul>
+        <li>Tap the <strong>⋮ menu</strong> (three dots, top right of Chrome)</li>
+        <li>Tap <strong>"Add to Home screen"</strong></li>
+        <li>Tap <strong>"Install"</strong> on the prompt that appears</li>
+        <li>The app icon will appear on your home screen</li>
+      </ul>
+
+      <div class="modal-section-title">Why the automatic prompt isn't showing</div>
+      <ul>
+        <li>Service worker: <strong>${swOk ? '✅ Registered ('+reg.scope+')' : '❌ Not registered — check icons folder exists on GitHub'}</strong></li>
+        <li>Manifest: <strong>${document.querySelector('link[rel="manifest"]') ? '✅ Linked' : '❌ Missing'}</strong></li>
+        <li>Protocol: <strong>${location.protocol === 'https:' ? '✅ HTTPS' : '❌ Not HTTPS'}</strong></li>
+        <li>Already installed: <strong>No</strong></li>
+        <li>Install dismissed before: <strong>${localStorage.getItem('ww_install_dismissed')==='true' ? 'Yes — cleared now' : 'No'}</strong></li>
+      </ul>
+      <p style="margin-top:8px;font-size:.78rem;color:var(--muted)">Chrome also requires the page to have been visited at least once before and may wait up to 30 seconds after load before showing the automatic prompt.</p>
+
+      <div class="modal-action-row" style="margin-top:14px">
+        <button class="modal-action-btn" onclick="resetInstallDismiss()">Reset install prompt</button>
+      </div>`;
+    // Clear dismissed flag so banner shows next time if prompt fires
+    localStorage.removeItem('ww_install_dismissed');
+    openModal();
+  });
+}
+
+function resetInstallDismiss() {
+  localStorage.removeItem('ww_install_dismissed');
+  closeModal();
+  // If prompt is now available, show it
+  if (_installPrompt) {
+    document.getElementById('installBanner').style.display = 'flex';
+  }
 }
 
 function dismissNotifBanner(){
