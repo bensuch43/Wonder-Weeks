@@ -3,6 +3,7 @@
   "name": "Wonder Weeks Tracker",
   "short_name": "Wonder Weeks",
   "description": "Track your baby's mental leaps and developmental windows based on their due date.",
+  "id": "wonder-weeks",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
